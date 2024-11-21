@@ -5,3 +5,5 @@ seaborn
 altair
 folium
 streamlit-folium
+plotly
+numpy

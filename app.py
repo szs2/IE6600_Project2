@@ -3,10 +3,14 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pydeck as pdk
+import altair as alt
+import plotly.express as px
+import numpy as np
 
 # Page Configuration
-st.set_page_config(page_title="Global Homelessness Dashboard", page_icon="🌍", layout="wide")
+st.set_page_config(page_title="Global Homelessness Dashboard", layout="wide")
 
+# ------------------------------------------------------------------------------------------------
 # Apply Theme Styling
 st.markdown("""
     <style>
@@ -31,39 +35,113 @@ st.markdown("""
         border: none;
         border-radius: 5px;
     }
+
+     geojson_data = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [
+                            [
+                                [-125.0, 48.0],
+                                [-125.0, 35.0],
+                                [-100.0, 35.0],
+                                [-100.0, 48.0],
+                                [-125.0, 48.0],
+                            ]
+                        ],
+                    },
+                    "properties": {
+                        "country": "United States",
+                        "total": 553742,
+                        "individuals": 369081,
+                        "family_households": 184661,
+                    },
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [
+                            [
+                                [10.0, 45.0],
+                                [10.0, 40.0],
+                                [15.0, 40.0],
+                                [15.0, 45.0],
+                                [10.0, 45.0],
+                            ]
+                        ],
+                    },
+                    "properties": {
+                        "country": "Italy",
+                        "total": 50000,
+                        "individuals": 32000,
+                        "family_households": 18000,
+                    },
+                },
+            ],
+        }
+
+        # Create a Pydeck Layer for GeoJSON
+        geojson_layer = pdk.Layer(
+            "GeoJsonLayer",
+            data=geojson_data,
+            get_fill_color="[255, (properties.total / 10000) * 50, 150]",
+            get_line_color=[255, 255, 255],
+            pickable=True,
+            stroked=True,
+        )
+
+
     </style>
 """, unsafe_allow_html=True)
+# ------------------------------------------------------------------------------------------------
 
 # Title and Introduction with 1/8 Margin
 with st.container():
     left_margin, content, right_margin = st.columns([1, 6, 1])
     with content:
-        st.title("🌍 Global Homelessness Dashboard")
+        st.title("Global Homelessness Dashboard")
         st.markdown("""
-        Welcome to the **Global Homelessness Dashboard**!  
-        This platform provides insights into homelessness across various countries.  
-        Discover trends, distributions, and geographic disparities through interactive charts and maps.
-        """)
+            Welcome to the **Global Homelessness Dashboard**!  
+            Created by: **Senuri Kahandugoda**
+
+            This interactive web application is designed to provide a comprehensive overview of homelessness trends and statistics across various regions worldwide. 
+            By leveraging the latest data from the [Global Homelessness Dataset](https://github.com/szs2/IE6600Project2/blob/main/Data/Homelessness.csv), 
+            the dashboard empowers users to explore key insights through interactive charts and filters.
+
+            With this tool, you can:
+            - Visualize the distribution of homelessness by region and country.
+            - Analyze demographic details, including individuals, families, veterans, and unaccompanied youth.
+            - Compare homelessness statistics between countries and continents.
+            - Gain actionable insights to support awareness and decision-making.
+
+            The **Global Homelessness Dashboard** is designed for policymakers, researchers, and individuals interested in understanding the global challenges of homelessness.  
+            Dive in, interact with the visuals, and explore the data to uncover stories behind the numbers!
+            """)
+
+
+# ------------------------------------------------------------------------------------------------
 
 # Load Dataset Function
 @st.cache_data
 def load_data():
-    url = "https://github.com/szs2/IE6600_Project2/blob/25645b9458f83077637edadc8048de71e6a754f3/Data/Homelessness.csv"
-    data = pd.read_csv(url)
-    data.columns = data.columns.str.strip()  # Remove leading/trailing spaces
-    return data
+    # Correct Dataset URL
+    url = "https://raw.githubusercontent.com/szs2/IE6600Project2/59286a675c19ad67bf0dfc1da0df756c37b1fe40/Data/Homelessness.csv"
+    try:
+        data = pd.read_csv(url)
+        data.columns = data.columns.str.strip()  # Clean column names
+        return data
+    except Exception as e:
+        st.error(f"Error loading data: {e}")
+        return pd.DataFrame()  # Return an empty DataFrame if loading fails
+
 
 # Load the data
 data = load_data()
-
-# Ensure required columns exist
-required_columns = [
-    'country', 'total', 'individuals', 'family_households',
-    'veterans', 'unaccompanied_youth', 'latitude', 'longitude'
-]
-if not all(col in data.columns for col in required_columns):
-    st.error(f"Dataset must contain the following columns: {required_columns}")
-    st.stop()
+# ------------------------------------------------------------------------------------------------
 
 # Sidebar Filters
 st.sidebar.title("🔍 Filter Options")
@@ -74,7 +152,7 @@ homeless_range = st.sidebar.slider(
     "Select Homeless Count Range:",
     int(data['total'].min()),
     int(data['total'].max()),
-    (50000, 500000)
+    (int(data['total'].min()), int(data['total'].max()))
 )
 
 # Multi-select for Countries with "All" Option
@@ -92,90 +170,226 @@ else:
     filtered_data = data[
         (data['total'].between(homeless_range[0], homeless_range[1])) &
         (data['country'].isin(selected_countries))
-    ]
+        ]
 
+# ------------------------------------------------------------------------------------------------
+
+
+# Static data for predefined region mapping
+data = pd.DataFrame({
+    'country': [
+        'India', 'Japan', 'United Kingdom', 'Germany',
+        'Canada', 'Mexico', 'Brazil', 'South Africa', 'Australia'
+    ],
+    'region': [
+        'Asia', 'Asia', 'Europe', 'Europe',
+        'North America', 'North America', 'South America', 'Africa', 'Oceania'
+    ]
+})
+
+# Treemap: Countries grouped by Regions
+with st.container():
+    left_margin, content, right_margin = st.columns([1, 6, 1])
+    with content:
+        st.header("Dividing Countries According to Regions in the World")
+        st.markdown("""
+                **This treemap provides a visual representation of countries grouped by their respective world regions.**  
+                The hierarchical structure is defined as **Region → Country**, enabling viewers to explore how different countries are distributed across continents such as **Asia, Europe, North America, South America, Africa,** and **Oceania**.  
+                Each region is represented as a parent category, with countries displayed as nested elements.  
+                This chart helps in understanding the global geographic classification of countries and their association with specific regions, offering a clear and organized overview for comparative and analytical purposes.
+                """)
+
+        if data.empty:
+            st.warning("No data available for the specified regions and countries.")
+        else:
+            # Create a Treemap using Plotly
+            fig = px.treemap(
+                data,
+                path=['region', 'country'],  # Hierarchy: Region -> Country
+                title='Dividing Countries According to Regions in the World'
+            )
+
+            # Render the Treemap
+            st.plotly_chart(fig, use_container_width=True)
+
+
+
+# ------------------------------------------------------------------------------------------------
 # Bar Chart: Total Homeless by Country with 1.5/8 Margins
 with st.container():
     left_margin, content, right_margin = st.columns([1.5, 5, 1.5])
     with content:
-        st.header("📊 Total Homeless by Country")
+        st.header("Total Homeless by Country")
         st.markdown("""
-        This bar chart shows the total number of homeless individuals in each country.  
-        Use the sidebar filters to refine your analysis.
-        """)
-        homeless_by_country = filtered_data.groupby('country')['total'].sum().sort_values(ascending=False)
-        st.bar_chart(homeless_by_country)
+                **This bar chart highlights the total number of homeless individuals in each country, providing a comparative view across nations.**  
+                The **X-axis** represents the **countries**, while the **Y-axis** shows the **total homeless population** for each country.  
+                By utilizing sidebar filters, viewers can refine the dataset to focus on specific countries or regions, facilitating detailed analysis.  
+                The chart's interactive features enable easy exploration of trends and patterns, supporting informed decision-making and targeted interventions.
+                """)
+
+        # Group data and sort by total
+        homeless_by_country = filtered_data.groupby('country')['total'].sum().sort_values(ascending=False).reset_index()
+
+        # Create a bar chart using Plotly
+        fig = px.bar(
+            homeless_by_country,
+            x='country',
+            y='total',
+            labels={'country': 'Country', 'total': 'Total Homeless Individuals'},
+            title="Total Homeless by Country",
+        )
+
+        # Update layout for better appearance
+        fig.update_layout(
+            xaxis_title="Country",
+            yaxis_title="Total Homeless Individuals",
+            title_x=0.5,  # Center the title
+            template='plotly_white'
+        )
+
+        # Render the Plotly chart
+        st.plotly_chart(fig, use_container_width=True)
+
+
+
+
+# ------------------------------------------------------------------------------------------------
 
 # Pie Chart: Homeless Composition by Country
+selected_countries_data = filtered_data[filtered_data['country'].isin(['United States', 'Australia', 'Japan'])]
+
 with st.container():
     left_margin, content, right_margin = st.columns([1.5, 5, 1.5])
     with content:
-        st.header("👥 Percentage of Homeless Population by Country")
+        st.header("Population Percentage in Pacific Countries")
         st.markdown("""
-        This pie chart illustrates the percentage distribution of homelessness across different countries.  
-        Hover over the chart to see precise percentages.
-        """)
-        country_totals = filtered_data.groupby('country')['total'].sum()
-        fig, ax = plt.subplots(figsize=(6, 4))
-        ax.pie(country_totals, labels=country_totals.index, autopct='%1.1f%%', startangle=90)
-        ax.set_title("Percentage of Homeless Population by Country", color='#2c2c2c')
-        fig.patch.set_facecolor('#f4f4f4')  # Set background
-        plt.setp(ax.texts, color="#333333")  # Set text color
-        st.pyplot(fig)
+                **This pie chart displays the percentage distribution of homelessness among selected Pacific countries:  
+                United States, Australia, and Japan.**  
+                Each segment represents a country, with its size proportional to the total number of homeless individuals relative to the group.  
+                Hover over the chart to view precise percentages, offering a clear understanding of how homelessness is distributed across these nations.  
+                The visualization provides insights into regional disparities, emphasizing the scale of homelessness in each country.
+                """)
+
+        # Filter data for specific countries
+        selected_countries_data = filtered_data[filtered_data['country'].isin(['United States', 'Australia', 'Japan'])]
+
+        # Check if there is data to display
+        if selected_countries_data.empty:
+            st.warning("No data available for the selected countries in the current filters.")
+        else:
+            # Group data and calculate percentages
+            selected_totals = selected_countries_data.groupby('country')['total'].sum()
+            fig, ax = plt.subplots(figsize=(6, 4))
+            ax.pie(
+                selected_totals,
+                labels=selected_totals.index,
+                autopct='%1.1f%%',
+                startangle=90
+            )
+            ax.set_title("Homelessness Percentage in Selected Countries", color='#2c2c2c')
+            fig.patch.set_facecolor('#f4f4f4')  # Set background
+            plt.setp(ax.texts, color="#333333")  # Set text color
+            st.pyplot(fig)
+
+# ------------------------------------------------------------------------------------------------
 
 # Histogram: Distribution of Homeless Counts
+# Enhanced Histogram: Distribution of Homeless Counts
 with st.container():
     left_margin, content, right_margin = st.columns([1.5, 5, 1.5])
     with content:
-        st.header("📊 Distribution of Homeless Counts")
+        st.header("Enhanced Distribution of Homeless Counts")
         st.markdown("""
-        This histogram shows the distribution of total homeless counts across countries.  
-        The density curve overlays the histogram to provide additional insights.
+        This enhanced histogram shows the distribution of total homeless counts across countries.  
+        The KDE (kernel density estimation) curve overlays the histogram to provide a smooth approximation of the data's distribution.  
+        Different colors distinguish the histogram bars from the KDE curve, and detailed axis labels enhance readability.
         """)
-        fig, ax = plt.subplots(figsize=(6, 4))
-        sns.set_theme(style="whitegrid")
-        sns.histplot(filtered_data['total'], bins=10, kde=True, ax=ax, color="#333333")
-        ax.set_title("Distribution of Homeless Counts", color='#2c2c2c')
-        ax.set_facecolor('#f4f4f4')  # Set background for the plot
-        st.pyplot(fig)
 
-# Map: Global Homelessness with 1.5/8 Margins
+        # Clean the data to ensure no NaN or invalid values
+        clean_data = filtered_data['total'].dropna()  # Remove NaNs
+        clean_data = clean_data[np.isfinite(clean_data)]  # Remove infinities
+
+        if clean_data.empty:
+            st.warning("No valid data available to plot the histogram.")
+        else:
+            # Plot configuration
+            fig, ax = plt.subplots(figsize=(8, 5))
+            sns.set_theme(style="whitegrid")
+
+            # Create the histogram with KDE
+            sns.histplot(
+                clean_data,
+                bins=15,  # Increase bin count for more detail
+                kde=True,
+                ax=ax,
+                color="#1f77b4",  # Blue for histogram bars
+            )
+
+            # Customize KDE curve separately
+            if len(ax.lines) > 0:  # Ensure the KDE curve exists
+                ax.lines[0].set_color("#ff7f0e")  # Set KDE curve color to orange
+                ax.lines[0].set_linewidth(2)  # Set KDE curve line width
+
+            # Add titles and labels
+            ax.set_title("Enhanced Distribution of Homeless Counts", fontsize=16, color="#333333", weight='bold')
+            ax.set_xlabel("Total Homeless Counts", fontsize=12, color="#333333")
+            ax.set_ylabel("Frequency", fontsize=12, color="#333333")
+
+            # Add gridlines for better readability
+            ax.grid(True, linestyle='--', linewidth=0.5, alpha=0.7)
+
+            # Add a legend
+            ax.legend(["KDE Curve", "Histogram"], loc="upper right", fontsize=10, frameon=True)
+
+            # Adjust background for the plot
+            ax.set_facecolor('#f9f9f9')
+            fig.patch.set_facecolor('#f4f4f4')
+
+            # Render the plot
+            st.pyplot(fig)
+
+# ------------------------------------------------------------------------------------------------
+
+# Scatter Plot: Interactive Homeless Population by Geographic Location
 with st.container():
     left_margin, content, right_margin = st.columns([1.5, 5, 1.5])
     with content:
-        st.header("🗺️ Map of Global Homelessness")
+        st.header("Interactive Scatter Plot: Homeless Population by Geographic Location")
         st.markdown("""
-        This map visualizes the total homeless count geographically.  
-        Each point represents a country, with the size of the point proportional to the homeless count.  
-        Hover over a point to see detailed values.
-        """)
-        st.pydeck_chart(pdk.Deck(
-            map_style="mapbox://styles/mapbox/light-v9",  # Light-themed map
-            initial_view_state=pdk.ViewState(
-                latitude=0,
-                longitude=0,
-                zoom=1.5,
-                pitch=50,
-            ),
-            tooltip={"html": "<b>Country:</b> {country}<br><b>Homeless Count:</b> {total}"},
-            layers=[
-                pdk.Layer(
-                    "ScatterplotLayer",
-                    data=filtered_data,
-                    get_position=["longitude", "latitude"],
-                    get_radius="total / 10000",
-                    get_fill_color="[200, 100, 200, 160]",  # Pastel Pink
-                    pickable=True,
-                ),
-            ],
-        ))
+                **This scatter plot provides an interactive visualization of the geographic locations (latitude and longitude) of countries and their corresponding total homeless population.**  
+                Each point on the chart represents a country, with the **size of the point indicating the scale of homelessness** and its **color reflecting population density** using a viridis color scale.  
+                Users can click on a point to view detailed information about a specific country, including its **name, homeless population, latitude, and longitude**, enabling an insightful geographic analysis of homelessness trends.
+                """)
+
+        # Check if there is data to display
+        if filtered_data.empty:
+            st.warning("No data available for the selected filters.")
+        else:
+            # Create an Altair scatter plot
+            scatter_chart = alt.Chart(filtered_data).mark_circle(size=100).encode(
+                x=alt.X('longitude:Q', title='Longitude'),
+                y=alt.Y('latitude:Q', title='Latitude'),
+                size=alt.Size('total:Q', scale=alt.Scale(range=[50, 500]), title='Homeless Population'),
+                color=alt.Color('total:Q', scale=alt.Scale(scheme='viridis'), title='Homeless Population'),
+                tooltip=['country:N', 'total:Q', 'latitude:Q', 'longitude:Q']  # Tooltip to show values
+            ).interactive()
+
+            # Display the chart
+            st.altair_chart(scatter_chart, use_container_width=True)
+# ------------------------------------------------------------------------------------------------
+
+
 
 # Footer with 1/8 Margins
 with st.container():
     left_margin, content, right_margin = st.columns([1, 6, 1])
     with content:
         st.markdown("""
-        ---
-        **Data Source**: [Global Homelessness Dataset](https://raw.githubusercontent.com/szs2/IE6600Project2/519d0a8d74f02d9c84f96a84cd6cd8d447ff7a08/Data/Homelessness.csv)  
-        Created with ❤️ using [Streamlit](https://streamlit.io/).
-        """)
+          ### Conclusion  
+          *The Global Homelessness Dashboard provides a data-driven perspective on the pressing issue of homelessness across regions.*  
+          *Through interactive visualizations, we aim to foster a deeper understanding of the trends, disparities, and underlying factors.*  
+          *Together, insights from data can inspire impactful solutions to create a world where everyone has a place to call home.*  
+
+          **Data Source**: [Global Homelessness Dataset](https://github.com/szs2/IE6600Project2/blob/main/Data/Homelessness.csv)  
+          Created with using [Streamlit](https://streamlit.io/).
+          """)
