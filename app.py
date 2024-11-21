@@ -99,7 +99,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 # ------------------------------------------------------------------------------------------------
 
-# Title and Introduction with 1/8 Margin
+# Title and Introduction
 with st.container():
     left_margin, content, right_margin = st.columns([1, 6, 1])
     with content:
@@ -128,7 +128,7 @@ with st.container():
 # Load Dataset Function
 @st.cache_data
 def load_data():
-    # Correct Dataset URL
+
     url = "https://raw.githubusercontent.com/szs2/IE6600Project2/59286a675c19ad67bf0dfc1da0df756c37b1fe40/Data/Homelessness.csv"
     try:
         data = pd.read_csv(url)
@@ -139,7 +139,6 @@ def load_data():
         return pd.DataFrame()  # Return an empty DataFrame if loading fails
 
 
-# Load the data
 data = load_data()
 # ------------------------------------------------------------------------------------------------
 
@@ -173,7 +172,6 @@ else:
         ]
 
 # ------------------------------------------------------------------------------------------------
-
 
 # Static data for predefined region mapping
 data = pd.DataFrame({
@@ -209,9 +207,7 @@ with st.container():
                 title='Dividing Countries According to Regions in the World'
             )
 
-            # Render the Treemap
             st.plotly_chart(fig, use_container_width=True)
-
 
 
 # ------------------------------------------------------------------------------------------------
@@ -239,7 +235,6 @@ with st.container():
             title="Total Homeless by Country",
         )
 
-        # Update layout for better appearance
         fig.update_layout(
             xaxis_title="Country",
             yaxis_title="Total Homeless Individuals",
@@ -247,10 +242,7 @@ with st.container():
             template='plotly_white'
         )
 
-        # Render the Plotly chart
         st.plotly_chart(fig, use_container_width=True)
-
-
 
 
 # ------------------------------------------------------------------------------------------------
@@ -294,7 +286,6 @@ with st.container():
 # ------------------------------------------------------------------------------------------------
 
 # Histogram: Distribution of Homeless Counts
-# Enhanced Histogram: Distribution of Homeless Counts
 with st.container():
     left_margin, content, right_margin = st.columns([1.5, 5, 1.5])
     with content:
@@ -306,7 +297,7 @@ with st.container():
         """)
 
         # Clean the data to ensure no NaN or invalid values
-        clean_data = filtered_data['total'].dropna()  # Remove NaNs
+        clean_data = filtered_data['total'].dropna()
         clean_data = clean_data[np.isfinite(clean_data)]  # Remove infinities
 
         if clean_data.empty:
@@ -322,7 +313,7 @@ with st.container():
                 bins=15,  # Increase bin count for more detail
                 kde=True,
                 ax=ax,
-                color="#1f77b4",  # Blue for histogram bars
+                color="#1f77b4",
             )
 
             # Customize KDE curve separately
@@ -335,7 +326,7 @@ with st.container():
             ax.set_xlabel("Total Homeless Counts", fontsize=12, color="#333333")
             ax.set_ylabel("Frequency", fontsize=12, color="#333333")
 
-            # Add gridlines for better readability
+            # Add gridlines
             ax.grid(True, linestyle='--', linewidth=0.5, alpha=0.7)
 
             # Add a legend
@@ -345,7 +336,6 @@ with st.container():
             ax.set_facecolor('#f9f9f9')
             fig.patch.set_facecolor('#f4f4f4')
 
-            # Render the plot
             st.pyplot(fig)
 
 # ------------------------------------------------------------------------------------------------
@@ -374,13 +364,10 @@ with st.container():
                 tooltip=['country:N', 'total:Q', 'latitude:Q', 'longitude:Q']  # Tooltip to show values
             ).interactive()
 
-            # Display the chart
             st.altair_chart(scatter_chart, use_container_width=True)
 # ------------------------------------------------------------------------------------------------
 
-
-
-# Footer with 1/8 Margins
+# Footer with 
 with st.container():
     left_margin, content, right_margin = st.columns([1, 6, 1])
     with content:
