@@ -109,7 +109,7 @@ with st.container():
             Created by: **Senuri Kahandugoda**
 
             This interactive web application is designed to provide a comprehensive overview of homelessness trends and statistics across various regions worldwide. 
-            By leveraging the latest data from the [Global Homelessness Dataset](https://github.com/szs2/IE6600Project2/blob/main/Data/Homelessness.csv), 
+            By leveraging the latest data from the [Global Homelessness Dataset](https://github.com/szs2/IE6600_Project2/blob/main/Data/Homelessness.csv), 
             the dashboard empowers users to explore key insights through interactive charts and filters.
 
             With this tool, you can:
@@ -377,6 +377,6 @@ with st.container():
           *Through interactive visualizations, we aim to foster a deeper understanding of the trends, disparities, and underlying factors.*  
           *Together, insights from data can inspire impactful solutions to create a world where everyone has a place to call home.*  
 
-          **Data Source**: [Global Homelessness Dataset](https://github.com/szs2/IE6600Project2/blob/main/Data/Homelessness.csv)  
+          **Data Source**: [Global Homelessness Dataset](https://github.com/szs2/IE6600_Project2/blob/main/Data/Homelessness.csv)  
           Created with using [Streamlit](https://streamlit.io/).
           """)
